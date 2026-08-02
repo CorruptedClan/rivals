@@ -724,7 +724,7 @@ loadConfig()
 
 -- RETORNO FINAL
 if NotificationLib then
-    NotificationLib:Notify("UnlockAll finalizado", "Script carregado com sucesso!", 3)
+    NotificationLib:Notify("UnlockAll finished", "Succes!", 3)
 end
 
 return "UnlockAll finished, enjoy!"
