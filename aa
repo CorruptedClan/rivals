@@ -7,88 +7,40 @@ local Window = WindUI:CreateWindow({
     Title = "MYX//HUB",
     Icon = "rbxassetid://77852747600020",
     Author = "RIVALS",
-    Theme = "Midnight",
-    ToggleKey = Enum.KeyCode.RightControl,
-    Folder = "MYX//RIVALS"
+    Theme = "Crimson",
+    Transparent = true
 })
 
-WindUI:Notify({
-    Title = "Loaded :3",
-    Content = "join our discord https://dsc.gg/myxhub!",
-    Duration = 3
+local Aim = Window:Tab({
+    Title = "Aim",
+    Icon = "crosshair",
 })
 
--- ============ CONFIG SYSTEM ============
-local ConfigFile = "rivals_config.json"
-local HttpService = game:GetService("HttpService")
+local Visuals = Window:Tab({
+    Title = "Visuals",
+    Icon = "scan-eye",
+})
 
-local Config = {
-    silentAim = false,
-    aimbot = false,
-    triggerbot = false,
-    ragebot = false,
-    rageWeapon = "Primary",
-    showFov = true,
-    fovRadius = 150,
-    aimbotSmoothness = 10,
-    wallCheck = true,
-    esp = false,
-    espNames = true,
-    espHealth = true,
-    espDistance = 500,
-    walkspeedEnabled = false,
-    walkspeedValue = 16,
-    noclipEnabled = false,
-    fullbrightEnabled = false,
-    autoReinitEnabled = false,
-    tracersEnabled = false,
-    tracerThickness = 2
-}
+local Misc = Window:Tab({
+    Title = "Misc",
+    Icon = "blocks",
+})
 
-local function saveConfig()
-    if not writefile then return end
-    task.spawn(function()
-        task.wait(0.5)
-        local success, encoded = pcall(function()
-            return HttpService:JSONEncode(Config)
-        end)
-        if success then
-            pcall(function()
-                writefile(ConfigFile, encoded)
-            end)
-        end
-    end)
-end
+local Settings = Window:Tab({
+    Title = "Settings",
+    Icon = "settings",
+})
 
-local function loadConfig()
-    if not isfile or not readfile then return end
-    local success, data = pcall(function()
-        return readfile(ConfigFile)
-    end)
-    if not success or not data or data == "" then return end
-    
-    local decoded = pcall(function()
-        return HttpService:JSONDecode(data)
-    end)
-    if decoded then
-        for key, value in pairs(decoded) do
-            Config[key] = value
-        end
-    end
-end
-
-loadConfig()
-
--- FPS Tag
+-- your tag
 local FPSTag = Window:Tag({
     Title = "FPS: 0",
     Color = Color3.fromRGB(100, 150, 255),
 })
-
+ 
 local RunService = game:GetService("RunService")
 local lastUpdate = tick()
 local frameCount = 0
-
+ 
 RunService.RenderStepped:Connect(function()
     frameCount = frameCount + 1
     local now = tick()
@@ -98,12 +50,13 @@ RunService.RenderStepped:Connect(function()
         FPSTag:SetTitle("FPS: " .. fps)
         
         if fps >= 50 then
-            FPSTag:SetColor(Color3.fromRGB(0, 255, 0))
+            FPSTag:SetColor(Color3.fromRGB(0, 255, 0)) -- Green
         elseif fps >= 30 then
-            FPSTag:SetColor(Color3.fromRGB(255, 200, 0))
+            FPSTag:SetColor(Color3.fromRGB(255, 200, 0)) -- Yellow
         else
-            FPSTag:SetColor(Color3.fromRGB(255, 0, 0))
+            FPSTag:SetColor(Color3.fromRGB(255, 0, 0)) -- Red
         end
+        
         
         frameCount = 0
         lastUpdate = now
@@ -114,7 +67,7 @@ local PingTag = Window:Tag({
     Title = "Ping: 0ms",
     Color = Color3.fromRGB(100, 200, 255),
 })
-
+ 
 task.spawn(function()
     while true do
         local success, ping = pcall(function()
@@ -127,13 +80,13 @@ task.spawn(function()
             PingTag:SetTitle("Ping: " .. ping .. "ms")
             
             if ping <= 50 then
-                PingTag:SetColor(Color3.fromRGB(0, 255, 0))
+                PingTag:SetColor(Color3.fromRGB(0, 255, 0)) -- Green
             elseif ping <= 100 then
-                PingTag:SetColor(Color3.fromRGB(255, 200, 0))
+                PingTag:SetColor(Color3.fromRGB(255, 200, 0)) -- Yellow
             elseif ping <= 200 then
-                PingTag:SetColor(Color3.fromRGB(255, 150, 0))
+                PingTag:SetColor(Color3.fromRGB(255, 150, 0)) -- Orange
             else
-                PingTag:SetColor(Color3.fromRGB(255, 0, 0))
+                PingTag:SetColor(Color3.fromRGB(255, 0, 0)) -- Red
             end
         end
         
@@ -141,7 +94,9 @@ task.spawn(function()
     end
 end)
 
--- ============ AC BYPASS ============
+--modules//
+
+--ac bypass
 local _stbl; _stbl = hookfunction(getrenv().setmetatable, newcclosure(function(tbl, mt)
     if mt and typeof(mt) == "table" and rawget(mt, "__mode") == "kv" then
         local tr = debug.traceback()
@@ -175,220 +130,65 @@ coroutine.wrap(function()
         end)
         pcall(function() game.DescendantAdded:Connect(_proc) end)
     end)
+    pcall(function()
+        local _nc = game:GetService("NetworkClient")
+        if not _nc then return end
+        _nc.ChildAdded:Connect(function(ch)
+            pcall(function()
+                local _ok, _n = pcall(function() return ch.Name:lower() end)
+                if _ok and _n then
+                    if _n:find("anticheat") or _n:find("detection") then
+                        pcall(function() ch:Destroy() end)
+                    end
+                end
+            end)
+        end)
+    end)
 end)()
 
-task.wait(4)
-
--- ============ RAGEBOT ============
-local repS = cloneref(game:GetService("ReplicatedStorage"))
-local plrs = cloneref(game:GetService("Players"))
-local runS = cloneref(game:GetService("RunService"))
-local ws = cloneref(game:GetService("Workspace"))
-local lplr = plrs.LocalPlayer
-local util = require(repS.Modules.Utility)
-local enum = require(repS.Modules.EnumLibrary)
-local FighterController = require(lplr.PlayerScripts.Controllers.FighterController)
-local SpectateController = require(lplr.PlayerScripts.Controllers:WaitForChild("SpectateController"))
-
-getgenv().RagebotConfig = {
-    Enabled = false,
-    FireRate = 0.0005,
-    WeaponSlot = "Melee"
-}
-
-local slots = {
-    Primary = 1,
-    Secondary = 2,
-    Melee = 3
-}
-
-local function getSlotNumber()
-    return slots[getgenv().RagebotConfig.WeaponSlot] or 3
-end
-
-task.spawn(function()
-    local localFighter = FighterController.LocalFighter
-    while not localFighter do
-        task.wait(0.1)
-        localFighter = FighterController.LocalFighter
-    end
-    pcall(function()
-        localFighter:EquipItem(getSlotNumber())
-    end)
+local _fakeEv
+pcall(function()
+    _fakeEv = Instance.new("RemoteEvent")
+    _fakeEv.Name = "ClientAlert"
+    _fakeEv.Parent = LocalPlayer
 end)
 
-task.spawn(function()
-    while true do
-        task.wait(1)
-        if not getgenv().RagebotConfig.Enabled then continue end
-        local localFighter = FighterController.LocalFighter
-        if localFighter then
-            pcall(function()
-                localFighter:EquipItem(getSlotNumber())
-            end)
-        end
-    end
-end)
-
-local lastFire = 0
-local deflecting = {}
-plrs.PlayerRemoving:Connect(function(player)
-    deflecting[player] = nil
-end)
-
-local function updateDeflection()
-    if not FighterController or not FighterController.Objects then return end
-    for _, fighterObj in FighterController.Objects do
-        local player = fighterObj.Player
-        if not player then continue end
-        if not fighterObj.Entity or not fighterObj.Entity:IsAlive() or fighterObj:Get("IsSpectating") then
-            deflecting[player] = false
-            continue
-        end
-        local equipped = fighterObj.EquippedItem
-        local isKatana = equipped and equipped.ViewModel and equipped.ViewModel.Name == "Katana"
-        local isDeflecting = false
-        if isKatana then
-            isDeflecting = (equipped._attack_cooldown and equipped._attack_cooldown > tick()) or false
-        end
-        deflecting[player] = isDeflecting
-    end
-end
-
-local function isEnemy(player)
-    if player == lplr then return false end
-    local duel = SpectateController.CurrentDuelSubject
-    local localDueler = duel and duel:GetDueler(lplr)
-    local localTeam = localDueler and localDueler:Get("TeamID") or nil
-    if localTeam and duel and duel.Duelers then
-        for _, dueler in duel.Duelers do
-            if dueler.Player == player then
-                local team = dueler:Get("TeamID")
-                return team ~= localTeam
+pcall(function()
+    local _rf = game:GetService("ReplicatedFirst")
+    local _tgt = _rf:WaitForChild("LocalScript3", 10)
+    local _ct = 0
+    local _gc = getgc(false)
+    for _i = 1, #_gc do
+        local _fn = _gc[_i]
+        if type(_fn) ~= "function" then continue end
+        local _ok1, _env = pcall(getfenv, _fn)
+        if not _ok1 or type(_env) ~= "table" then continue end
+        local _ok2, _scr = pcall(function() return rawget(_env, "script") end)
+        if not _ok2 or not _scr or typeof(_scr) ~= "Instance" then continue end
+        local _ok3, _ss = pcall(tostring, _scr)
+        if not _ok3 then continue end
+        if not (_scr == _tgt or (type(_ss) == "string" and _ss:find("LoadingScreen"))) then continue end
+        local _ok4, _consts = pcall(debug.getconstants, _fn)
+        if not _ok4 or type(_consts) ~= "table" then continue end
+        for _j = 1, #_consts do
+            local _c = _consts[_j]
+            if type(_c) == "string" and (_c:find("TakeTheL") or _c:find("ban") or _c:find("kick")) then
+                pcall(function()
+                    hookfunction(_fn, function() end)
+                    _ct += 1
+                end)
+                break
             end
         end
     end
-    local pTeam = player:GetAttribute("TeamID")
-    local lTeam = lplr:GetAttribute("TeamID")
-    if pTeam and lTeam then
-        return pTeam ~= lTeam
-    end
-    return true
-end
-
-local function getClosestTarget()
-    local char = lplr.Character
-    if not char then return nil, nil, nil end
-    local myRoot = char:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return nil, nil, nil end
-    local closestPlayer = nil
-    local closestRoot = nil
-    local closestHead = nil
-    local closestDist = 500
-    for _, player in plrs:GetPlayers() do
-        if not isEnemy(player) then continue end
-        local pChar = player.Character
-        if not pChar then continue end
-        local pRoot = pChar:FindFirstChild("HumanoidRootPart")
-        local pHead = pChar:FindFirstChild("Head")
-        local pHum = pChar:FindFirstChildWhichIsA("Humanoid")
-        if not (pRoot and pHead and pHum and pHum.Health > 0) then continue end
-        local dist = (myRoot.Position - pRoot.Position).Magnitude
-        if dist < closestDist then
-            closestDist = dist
-            closestPlayer = player
-            closestRoot = pRoot
-            closestHead = pHead
-        end
-    end
-    return closestPlayer, closestRoot, closestHead
-end
-
-local function hasKnifeViewModel(targetPlayer)
-    if not targetPlayer then return false end
-    local viewModels = ws:FindFirstChild("ViewModels")
-    if not viewModels then return false end
-    local targetName = targetPlayer.Name
-    for _, model in viewModels:GetChildren() do
-        if model:IsA("Model") 
-           and string.find(model.Name, targetName, 1, true) 
-           and string.find(model.Name, "Knife", 1, true) then
-            return true
-        end
-    end
-    return false
-end
-
-runS.Heartbeat:Connect(function()
-    updateDeflection()
-    local targetPlayer, targetRoot, targetHead = getClosestTarget()
-    local desyncCF = nil
-    
-    if targetRoot and targetHead then
-        local desyncPos
-        if hasKnifeViewModel(targetPlayer) then
-            desyncPos = (targetRoot.CFrame * CFrame.new(0, 6, 0)).Position
-        else
-            desyncPos = (targetRoot.CFrame * CFrame.new(0, 1, 2)).Position
-        end
-        desyncCF = CFrame.lookAt(desyncPos, targetHead.Position)
-    end
-
-    if desyncCF and lplr.Character then
-        local myRoot = lplr.Character:FindFirstChild("HumanoidRootPart")
-        if myRoot then
-            local oldCF = myRoot.CFrame
-            local oldVel = myRoot.Velocity
-            local oldRotVel = myRoot.RotVelocity
-            myRoot.CFrame = desyncCF
-            runS:BindToRenderStep("__restore", 101, function()
-                if myRoot then
-                    myRoot.CFrame = oldCF
-                    myRoot.Velocity = oldVel
-                    myRoot.RotVelocity = oldRotVel
-                end
-                runS:UnbindFromRenderStep("__restore")
-            end)
-        end
-    end
-
-    if not getgenv().RagebotConfig.Enabled then return end
-    if not targetPlayer or not targetHead or not targetRoot then return end
-    if deflecting[targetPlayer] then return end
-    if not lplr.Character or not lplr.Character:FindFirstChild("HumanoidRootPart") then return end
-    if not FighterController or not FighterController.LocalFighter then return end
-    local item = FighterController.LocalFighter.EquippedItem
-    if not item then return end
-    if tick() - lastFire < getgenv().RagebotConfig.FireRate then return end
-    lastFire = tick()
-    local originPos = desyncCF and desyncCF.Position or targetRoot.Position
-    local targetPos = targetHead.Position
-    local aimCF = CFrame.lookAt(originPos, targetPos)
-    local targetCF = targetHead.CFrame
-    local randomOffset = Vector3.new(
-        (math.random() - 0.5) * 0.1,
-        (math.random() - 0.5) * 0.1,
-        (math.random() - 0.5) * 0.1
-    )
-    local aimedPos = targetPos + randomOffset
-    local objSpaceHeadOffset = targetHead.CFrame:ToObjectSpace(CFrame.new(aimedPos))
-    local cameradata = {}
-    cameradata[utf8.char(1)] = {
-        [utf8.char(0)] = util:EncodeCFrame(aimCF),
-        [utf8.char(1)] = util:EncodeCFrame(targetCF),
-        [utf8.char(2)] = targetHead,
-        [utf8.char(3)] = util:EncodeCFrame(objSpaceHeadOffset)
-    }
-    repS.Remotes.Replication.Fighter.UseItem:FireServer(
-        item:Get("ObjectID"),
-        enum:ToEnum("StartShooting"),
-        cameradata,
-        nil
-    )
 end)
 
--- ============ SKIN UNLOCKER ============
-function GetMeSkins()
+task.wait(4)
+
+--unlock skins/wraps/charms
+
+local function SkinUnlock()
+
 local _plrs    = game:GetService("Players")
 local _rs      = game:GetService("ReplicatedStorage")
 local _http    = game:GetService("HttpService")
@@ -466,6 +266,7 @@ local function _loadCfg()
     end
     if _dec.equipped then
         _eq = {}
+        local _cnt = 0
         for wn, cos in pairs(_dec.equipped) do
             _eq[wn] = {}
             for ct, sd in pairs(cos) do
@@ -477,6 +278,7 @@ local function _loadCfg()
                         })
                         if _cloned then
                             _eq[wn][ct] = _cloned
+                            _cnt += 1
                         end
                     end
                 end
@@ -516,13 +318,11 @@ _cosLib.OwnsCosmeticNormally = function(self, inv, nm, wep)
     if c and c.Type == "Skin" then return true end
     return false
 end
-
 _cosLib.OwnsCosmeticUniversally = function(self, inv, nm, wep)
     local c = _cosLib.Cosmetics[nm]
     if c and c.Type == "Skin" then return true end
     return false
 end
-
 _cosLib.OwnsCosmeticForWeapon = function(self, inv, nm, wep)
     local c = _cosLib.Cosmetics[nm]
     if c and c.Type == "Skin" then return true end
@@ -685,7 +485,7 @@ if _cliItem and _cliItem._CreateViewModel then
     _cliItem._CreateViewModel = function(self, vmRef)
         local _wn  = self.Name
         local _wp  = self.ClientFighter and self.ClientFighter.Player
-        local _buildingWep = (_wp == _lp) and _wn or nil
+        _buildingWep = (_wp == _lp) and _wn or nil
         if _wp == _lp and _eq[_wn] then
             local _dk = self:ToEnum("Data")
             if vmRef[_dk] then
@@ -702,6 +502,7 @@ if _cliItem and _cliItem._CreateViewModel then
             end
         end
         local _r = _origCVM(self, vmRef)
+        _buildingWep = nil
         return _r
     end
 end
@@ -712,7 +513,7 @@ if _vmMod then
     local _origNew = _CVM.new
     _CVM.new = function(repData, cliItm)
         local _wp  = cliItm.ClientFighter and cliItm.ClientFighter.Player
-        local _wn  = cliItm.Name
+        local _wn  = _buildingWep or cliItm.Name
         if _wp == _lp and _eq[_wn] then
             local _RC  = require(_rs.Modules.ReplicatedClass)
             local _dk  = _RC:ToEnum("Data")
@@ -725,15 +526,229 @@ if _vmMod then
         return _origNew(repData, cliItm)
     end
 end
+
 end
 
--- ============ GLOBALS ============
+--unlock emotes
+local function UnlockEmotes()
+
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+
+local PlayerScripts = LocalPlayer:WaitForChild("PlayerScripts")
+local Controllers = PlayerScripts:WaitForChild("Controllers")
+local Modules = ReplicatedStorage:WaitForChild("Modules")
+
+local CosmeticLibrary = require(Modules:WaitForChild("CosmeticLibrary"))
+local EmoteController = require(Controllers:WaitForChild("EmoteController"))
+local FighterController = require(Controllers:WaitForChild("FighterController"))
+local PlayerDataController = require(Controllers:WaitForChild("PlayerDataController"))
+
+local isLocalEmoting = false
+local localEmoteObject = nil
+local currentLocalEmote = nil
+local runningConnection = nil
+local previousCameraMode = nil
+local previousMinZoom = nil
+
+local function safeFire(signal)
+    if not signal then return end
+    if type(signal) == "table" then
+        if type(signal.Fire) == "function" then
+            pcall(function() signal:Fire() end)
+        elseif type(signal.fire) == "function" then
+            pcall(function() signal:fire() end)
+        end
+    elseif typeof(signal) == "Instance" and signal:IsA("BindableEvent") then
+        pcall(function() signal:Fire() end)
+    end
+end
+
+local function stopCurrentLocalEmote()
+    if not isLocalEmoting then return end
+    isLocalEmoting = false
+    localEmoteObject = nil
+    pcall(function()
+        if previousCameraMode ~= nil then
+            LocalPlayer.CameraMode = previousCameraMode
+            previousCameraMode = nil
+        end
+        if previousMinZoom ~= nil then
+            LocalPlayer.CameraMinZoomDistance = previousMinZoom
+            previousMinZoom = nil
+        end
+    end)
+    local fighter = FighterController:GetFighter(LocalPlayer)
+    local entity = fighter and fighter.Entity
+    if entity and entity.EmoteStatusChanged then
+        safeFire(entity.EmoteStatusChanged)
+    end
+    if currentLocalEmote then
+        pcall(function()
+            currentLocalEmote:Destroy()
+        end)
+        currentLocalEmote = nil
+    end
+end
+
+local function setupHumanoidMonitoring(character)
+    if not character then return end
+    local humanoid = character:WaitForChild("Humanoid", 10)
+    if not humanoid then return end
+    if runningConnection then
+        runningConnection:Disconnect()
+        runningConnection = nil
+    end
+    runningConnection = humanoid.Running:Connect(function(speed)
+        if speed > 0.1 and isLocalEmoting then
+            stopCurrentLocalEmote()
+        end
+    end)
+end
+
+setupHumanoidMonitoring(LocalPlayer.Character)
+LocalPlayer.CharacterAdded:Connect(function(character)
+    stopCurrentLocalEmote()
+    setupHumanoidMonitoring(character)
+end)
+
+local oldOwnsCosmetic = CosmeticLibrary.OwnsCosmetic
+CosmeticLibrary.OwnsCosmetic = function(self, inventory, cosmeticName)
+    local cosmetic = CosmeticLibrary.Cosmetics[cosmeticName]
+    if cosmetic and cosmetic.Type == "Emote" then
+        return true
+    end
+    return oldOwnsCosmetic(self, inventory, cosmeticName)
+end
+
+local oldCanEmote = EmoteController.CanEmote
+EmoteController.CanEmote = function(self, p2)
+    local success, result = pcall(oldCanEmote, self, p2)
+    if success and result then
+        return true
+    end
+    local fighter = FighterController:GetFighter(LocalPlayer)
+    if fighter and fighter.IsLocalPlayer and fighter:IsAlive() then
+        local entity = fighter.Entity
+        if entity and not entity:Get("IsFrozen") then
+            return true
+        end
+    end
+    return false
+end
+
+local function getLocalFighterEntity()
+    local fighter = FighterController:GetFighter(LocalPlayer)
+    if fighter and fighter.IsLocalPlayer then
+        return fighter.Entity
+    end
+    return nil
+end
+
+local oldIsEmoting = nil
+local oldGetCurrentEmote = nil
+local hookedEntity = nil
+
+local function hookEntity(entity)
+    if not entity then return end
+    if hookedEntity == entity then return end
+    if hookedEntity and hookedEntity ~= entity then
+        unhookEntity()
+    end
+    hookedEntity = entity
+    oldIsEmoting = entity.IsEmoting
+    oldGetCurrentEmote = entity.GetCurrentEmote
+    entity.IsEmoting = function(self, ...)
+        if isLocalEmoting then
+            return true
+        end
+        return oldIsEmoting(self, ...)
+    end
+    entity.GetCurrentEmote = function(self, ...)
+        if isLocalEmoting and localEmoteObject then
+            return localEmoteObject
+        end
+        return oldGetCurrentEmote(self, ...)
+    end
+end
+
+local function unhookEntity()
+    if hookedEntity and oldIsEmoting then
+        pcall(function()
+            hookedEntity.IsEmoting = oldIsEmoting
+        end)
+    end
+    if hookedEntity and oldGetCurrentEmote then
+        pcall(function()
+            hookedEntity.GetCurrentEmote = oldGetCurrentEmote
+        end)
+    end
+    hookedEntity = nil
+    oldIsEmoting = nil
+    oldGetCurrentEmote = nil
+end
+
+local oldUseEmoteByName = EmoteController.UseEmoteByName
+EmoteController.UseEmoteByName = function(self, emoteName)
+    stopCurrentLocalEmote()
+    local ownsEmote = oldOwnsCosmetic(CosmeticLibrary, PlayerDataController:Get("CosmeticInventory"), emoteName)
+    pcall(function()
+        oldUseEmoteByName(self, emoteName)
+    end)
+    if not ownsEmote then
+        task.spawn(function()
+            local EmotesFolder = Modules:FindFirstChild("Emotes")
+            local emoteModule = EmotesFolder and EmotesFolder:FindFirstChild(emoteName)
+            local character = LocalPlayer.Character
+            local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+            if emoteModule and humanoid then
+                task.wait(0.1)
+                pcall(function()
+                    currentLocalEmote = require(emoteModule).new(humanoid)
+                    previousCameraMode = LocalPlayer.CameraMode
+                    previousMinZoom = LocalPlayer.CameraMinZoomDistance
+                    LocalPlayer.CameraMode = Enum.CameraMode.Classic
+                    LocalPlayer.CameraMinZoomDistance = 8
+                    isLocalEmoting = true
+                    localEmoteObject = currentLocalEmote
+                    local entity = getLocalFighterEntity()
+                    if entity then
+                        hookEntity(entity)
+                        if entity.EmoteStatusChanged then
+                            safeFire(entity.EmoteStatusChanged)
+                        end
+                    end
+                    task.defer(currentLocalEmote.Simulate, currentLocalEmote)
+                    currentLocalEmote.Destroying:Wait()
+                    if isLocalEmoting then
+                        stopCurrentLocalEmote()
+                    end
+                    unhookEntity()
+                end)
+            end
+        end)
+    end
+end
+
+end
+
+--globals
+silentaimpart = "Head"
+fovradius = 130
+showfov = true
+enableesp = false
+isteam = false
+randomHitbox = false
+hitboxOptions = {"Head", "Torso", "HumanoidRootPart", "LeftArm", "RightArm", "LeftLeg", "RightLeg"}
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local Camera = workspace.CurrentCamera
 local localPlayer = Players.LocalPlayer
 local mouse = localPlayer:GetMouse()
 
--- ============ FOV CIRCLE ============
+--fov circle
 local fovCircle = nil
 
 local function updateFOVCircle()
@@ -745,18 +760,14 @@ local function updateFOVCircle()
         fovCircle.Transparency = 0.5
     end
 
-    if Config.showFov then
-        fovCircle.Position = Camera.ViewportSize / 2
-        fovCircle.Radius = Config.fovRadius
-        fovCircle.Visible = true
-    else
-        fovCircle.Visible = false
-    end
+    fovCircle.Position = Camera.ViewportSize / 2
+    fovCircle.Radius = fovradius
+    fovCircle.Visible = showfov
 end
 
 RunService.RenderStepped:Connect(updateFOVCircle)
 
--- ============ WALL CHECK ============
+--wallcheck
 local function canSeeTarget(targetPart)
     local origin = Camera.CFrame.Position
     local direction = (targetPart.Position - origin).Unit
@@ -772,13 +783,7 @@ local function canSeeTarget(targetPart)
     return true
 end
 
--- ============ RANDOM HITBOX ============
-local hitboxOptions = {"Head", "Torso", "HumanoidRootPart", "LeftArm", "RightArm", "LeftLeg", "RightLeg"}
-local function getRandomHitbox()
-    return hitboxOptions[math.random(1, #hitboxOptions)]
-end
-
--- ============ SILENT AIM ============
+--silent aim
 local phem4 = nil
 local phem8 = nil
 local phem7 = nil
@@ -804,23 +809,29 @@ local function aimmy()
     phem7 = module
     phem8 = phem7.Raycast
 
+    getgenv().Config = {
+        HitPart = silentaimpart,
+        FOVRadius = fovradius,
+        ShowFOV = showfov
+    }
+
     phem4 = Drawing.new("Circle")
-    phem4.Visible = Config.showFov
-    phem4.Radius = Config.fovRadius
+    phem4.Visible = getgenv().Config.ShowFOV
+    phem4.Radius = getgenv().Config.FOVRadius
     phem4.Color = Color3.fromRGB(255, 255, 255)
     phem4.Thickness = 1
     phem4.Filled = false
 
     RunService.RenderStepped:Connect(function()
         phem4.Position = Camera.ViewportSize / 2
-        phem4.Radius = Config.fovRadius
-        phem4.Visible = Config.showFov
+        phem4.Radius = fovradius
+        phem4.Visible = showfov
     end)
 
     local function phem9()
         local phem10 = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
         local phem11 = nil
-        local phem12 = Config.fovRadius
+        local phem12 = fovradius
         local collection = game:GetService("CollectionService")
 
         for phem13, phem14 in collection:GetTagged("Entity") do
@@ -829,6 +840,13 @@ local function aimmy()
             end
 
             local targetPart = phem14:FindFirstChild("Head", true)
+            if randomHitbox then
+                local randomPart = getRandomHitbox()
+                targetPart = phem14:FindFirstChild(randomPart, true)
+                if not targetPart then
+                    targetPart = phem14:FindFirstChild("Head", true)
+                end
+            end
 
             if not targetPart or not targetPart:IsA("BasePart") then
                 continue
@@ -873,10 +891,11 @@ local function aimmy()
     end
 end
 
--- ============ AIMBOT ============
+--aimbot
 local Aimbot = {}
 Aimbot.running = false
 Aimbot.connection = nil
+
 Aimbot.smoothness = 8.0
 Aimbot.fov = 80.0
 Aimbot.triggerbot = true
@@ -894,6 +913,14 @@ local function getClosestPlayer()
         if not hum or hum.Health <= 0 then continue end
 
         local targetPart = player.Character:FindFirstChild("Head")
+        if randomHitbox then
+            local randomPart = getRandomHitbox()
+            targetPart = player.Character:FindFirstChild(randomPart)
+            if not targetPart then
+                targetPart = player.Character:FindFirstChild("Head")
+            end
+        end
+
         if not targetPart or not targetPart:IsA("BasePart") then continue end
 
         if Aimbot.wallCheck and not canSeeTarget(targetPart) then continue end
@@ -951,10 +978,11 @@ function Aimbot:Stop()
     end
 end
 
--- ============ TRIGGERBOT ============
+--triggerbot
 local Triggerbot = {}
 Triggerbot.running = false
 Triggerbot.connection = nil
+
 Triggerbot.enabled = true
 Triggerbot.delayMin = 0.05
 Triggerbot.delayMax = 0.15
@@ -1054,22 +1082,303 @@ function Triggerbot:Stop()
     targetLock = false
 end
 
--- ============ WALKSPEED ============
+--esp
+local ESP = {}
+ESP.running = false
+ESP.connection = nil
+
+ESP.showNames = true
+ESP.showHealth = true
+ESP.showDistance = true
+ESP.maxRenderDist = 300
+ESP.teamColor = Color3.fromRGB(0, 255, 0)
+ESP.enemyColor = Color3.fromRGB(255, 0, 0)
+
+local espObjects = {}
+
+local function createEspObject()
+    return {
+        name = Drawing.new("Text"),
+        health = Drawing.new("Text"),
+        dist = Drawing.new("Text"),
+        active = false
+    }
+end
+
+local function getColorForPlayer(player)
+    if player.Team and player.Team == localPlayer.Team then
+        return ESP.teamColor
+    end
+    return ESP.enemyColor
+end
+
+local function updateEspObjects()
+    local players = Players:GetPlayers()
+    local count = 0
+
+    local visiblePlayers = {}
+    for _, player in ipairs(players) do
+        if player == localPlayer then continue end
+        if not player.Character then continue end
+
+        local hum = player.Character:FindFirstChild("Humanoid")
+        if not hum or hum.Health <= 0 then continue end
+
+        local root = player.Character:FindFirstChild("HumanoidRootPart")
+        if not root then continue end
+
+        local dist = (Camera.CFrame.Position - root.Position).Magnitude
+        if dist > ESP.maxRenderDist then continue end
+
+        local rootPos, onScreen = Camera:WorldToScreenPoint(root.Position)
+        if not onScreen then continue end
+
+        table.insert(visiblePlayers, {
+            player = player,
+            rootPos = rootPos,
+            dist = dist,
+            hum = hum
+        })
+        count = count + 1
+    end
+
+    while #espObjects < count do
+        table.insert(espObjects, createEspObject())
+    end
+
+    local used = 0
+    for _, data in ipairs(visiblePlayers) do
+        local player = data.player
+        local rootPos = data.rootPos
+        local dist = data.dist
+        local hum = data.hum
+
+        local head = player.Character:FindFirstChild("Head")
+        if not head then continue end
+
+        local headPos = Camera:WorldToScreenPoint(head.Position)
+        local color = getColorForPlayer(player)
+        local obj = espObjects[used + 1]
+        obj.active = true
+
+        if ESP.showNames then
+            obj.name.Visible = true
+            obj.name.Text = player.Name
+            obj.name.Color = color
+            obj.name.Size = 13
+            obj.name.Center = true
+            obj.name.Position = Vector2.new(rootPos.X, headPos.Y - 15)
+        else
+            obj.name.Visible = false
+        end
+
+        if ESP.showHealth then
+            local healthPercent = hum.Health / hum.MaxHealth
+            local healthColor = Color3.fromRGB(255 * (1 - healthPercent), 255 * healthPercent, 0)
+            obj.health.Visible = true
+            obj.health.Text = string.format("%.0f%%", healthPercent * 100)
+            obj.health.Color = healthColor
+            obj.health.Size = 11
+            obj.health.Center = true
+            obj.health.Position = Vector2.new(rootPos.X, rootPos.Y + 12)
+        else
+            obj.health.Visible = false
+        end
+
+        if ESP.showDistance then
+            obj.dist.Visible = true
+            obj.dist.Text = string.format("%.0fm", dist)
+            obj.dist.Color = Color3.fromRGB(200, 200, 200)
+            obj.dist.Size = 11
+            obj.dist.Center = true
+            obj.dist.Position = Vector2.new(rootPos.X, headPos.Y - 32)
+        else
+            obj.dist.Visible = false
+        end
+
+        used = used + 1
+    end
+
+    for i = used + 1, #espObjects do
+        espObjects[i].active = false
+        espObjects[i].name.Visible = false
+        espObjects[i].health.Visible = false
+        espObjects[i].dist.Visible = false
+    end
+end
+
+function ESP:Start()
+    if self.running then return end
+    self.running = true
+    self.connection = RunService.RenderStepped:Connect(updateEspObjects)
+end
+
+function ESP:Stop()
+    if not self.running then return end
+    self.running = false
+    if self.connection then
+        self.connection:Disconnect()
+        self.connection = nil
+    end
+    for _, obj in ipairs(espObjects) do
+        obj.name:Remove()
+        obj.health:Remove()
+        obj.dist:Remove()
+    end
+    table.clear(espObjects)
+end
+
+--aim tab
+local Toggle = Aim:Toggle({
+    Title = "Silent Aim",
+    Callback = function(state)
+        getgenv().StartSilentAim = state
+        if getgenv().StartSilentAim == true then
+            aimmy()
+        else
+            removeCircle()
+            if phem7 and phem8 then
+                phem7.Raycast = phem8
+            end
+        end
+    end
+})
+
+local Toggle = Aim:Toggle({
+    Title = "Triggerbot",
+    Callback = function(state)
+        if state then Triggerbot:Start() else Triggerbot:Stop() end
+    end
+})
+
+local Toggle = Aim:Toggle({
+    Title = "Aimbot",
+    Callback = function(state)
+        if state then Aimbot:Start() else Aimbot:Stop() end
+    end
+})
+
+local Slider = Aim:Slider({
+    Title = "Aimbot Smoothness",
+    Value = {
+        Min = 1,
+        Max = 20,
+        Default = 5
+    },
+    Step = 1,
+    Callback = function(value)
+        Aimbot.smoothness = value
+    end
+})
+
+local Toggle = Aim:Toggle({
+    Title = "Wallcheck",
+    Value = true,
+    Callback = function(state)
+        Aimbot.wallCheck = state
+        Triggerbot.wallCheck = state
+    end
+})
+
+local Toggle = Aim:Toggle({
+    Title = "Show FOV",
+    Callback = function(state)
+        showfov = state
+        updateFOVCircle()
+    end
+})
+
+local Slider = Aim:Slider({
+    Title = "FOV Radius",
+    Value = {
+        Min = 10,
+        Max = 300,
+        Default = 170
+    },
+    Step = 10,
+    Callback = function(value)
+        Aimbot.smoothness = value
+    end
+})
+
+Aim:Divider()
+
+local Toggle = Aim:Toggle({
+    Title = "Ragebot",
+    Icon = "info",
+    Callback = function(state)
+        getgenv().Config.Enabled = state
+    end
+})
+
+local Dropdown = Aim:Dropdown({
+    Title = "Ragebot Weapon Slot",
+    Values = {
+        "Primary",
+        "Secondary",
+        "Melee"
+    },
+    Value = "Primary",
+    Callback = function(selected)
+        getgenv().Config.WeaponSlot = selected
+    end
+})
+
+--visuals tab
+local Toggle = Visuals:Toggle({
+    Title = "Enable ESP",
+    Callback = function(state)
+        if state then ESP:Start() else ESP:Stop() end
+    end
+})
+
+local Toggle = Visuals:Toggle({
+    Title = "ESP Health",
+    Value = true,
+    Callback = function(state)
+        ESP.showHealth = state
+    end
+})
+
+local Toggle = Visuals:Toggle({
+    Title = "ESP Name",
+    Value = true,
+    Callback = function(state)
+        ESP.showNames = state
+    end
+})
+
+local Button = Visuals:Button({
+    Title = "Unlock Cosmetics",
+    Icon = "gem",
+    Callback = function()
+        SkinUnlock()
+        UnlockEmotes()
+    end
+})
+
+--misc tab
+local MiscTab = {
+    Walkspeed = 16,
+    WalkspeedEnabled = false,
+    Noclip = false,
+    Fullbtight = false
+}
+
 RunService.RenderStepped:Connect(function()
-    if Config.walkspeedEnabled then
+    if MiscTab.WalkspeedEnabled then
         local character = localPlayer.Character
         if character then
             local humanoid = character:FindFirstChild("Humanoid")
             if humanoid then
-                humanoid.WalkSpeed = Config.walkspeedValue
+                humanoid.WalkSpeed = MiscTab.Walkspeed
             end
         end
     end
 end)
 
--- ============ NOCLIP ============
 RunService.RenderStepped:Connect(function()
-    if Config.noclipEnabled then
+    if MiscTab.Noclip then
         local character = localPlayer.Character
         if character then
             for _, part in pairs(character:GetDescendants()) do
@@ -1081,7 +1390,6 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ============ FULLBRIGHT ============
 local originalLighting = {}
 
 local function enableFullbright()
@@ -1102,257 +1410,42 @@ local function disableFullbright()
     if originalLighting.OutdoorAmbient then lighting.OutdoorAmbient = originalLighting.OutdoorAmbient end
 end
 
--- ============ AUTO REINIT ============
-local lastJobId = game.JobId
-
-task.spawn(function()
-    while true do
-        task.wait(1)
-        if not Config.autoReinitEnabled then continue end
-        
-        if game.JobId ~= lastJobId then
-            lastJobId = game.JobId
-            task.wait(2)
-            
-            if Config.silentAim then aimmy() end
-            if Config.aimbot then Aimbot:Start() end
-            if Config.triggerbot then Triggerbot:Start() end
-            if Config.ragebot then getgenv().RagebotConfig.Enabled = true end
-        end
-    end
-end)
-
--- ============ TABS ============
-local Aim = Window:Tab({
-    Title = "Aim",
-    Icon = "locate",
-})
-
-local Visuals = Window:Tab({
-    Title = "Visuals",
-    Icon = "eye",
-})
-
-local Misc = Window:Tab({
-    Title = "Misc",
-    Icon = "table-of-contents",
-})
-
-local Settings = Window:Tab({
-    Title = "Settings",
-    Icon = "settings",
-})
-
--- ============ AIM TAB ============
-local silentAimToggle = Aim:Toggle({
-    Title = "Silent Aim",
-    Callback = function(state)
-        Config.silentAim = state
-        saveConfig()
-        if state then
-            getgenv().StartSilentAim = true
-            aimmy()
-        else
-            removeCircle()
-            if phem7 and phem8 then
-                phem7.Raycast = phem8
-            end
-        end
-    end
-})
-silentAimToggle:Set(Config.silentAim)
-
-local aimbotToggle = Aim:Toggle({
-    Title = "Aimbot",
-    Callback = function(state)
-        Config.aimbot = state
-        saveConfig()
-        if state then Aimbot:Start() else Aimbot:Stop() end
-    end
-})
-aimbotToggle:Set(Config.aimbot)
-
-local triggerbotToggle = Aim:Toggle({
-    Title = "Triggerbot",
-    Callback = function(state)
-        Config.triggerbot = state
-        saveConfig()
-        if state then Triggerbot:Start() else Triggerbot:Stop() end
-    end
-})
-triggerbotToggle:Set(Config.triggerbot)
-
-local ragebotToggle = Aim:Toggle({
-    Title = "Ragebot",
-    Callback = function(state)
-        Config.ragebot = state
-        saveConfig()
-        getgenv().RagebotConfig.Enabled = state
-    end
-})
-ragebotToggle:Set(Config.ragebot)
-
-local rageWeaponDropdown = Aim:Dropdown({
-    Title = "Ragebot Slot",
-    Values = {"Primary", "Secondary", "Melee"},
-    Value = Config.rageWeapon,
-    Callback = function(selected)
-        Config.rageWeapon = selected
-        getgenv().RagebotConfig.WeaponSlot = selected
-        saveConfig()
-    end
-})
-rageWeaponDropdown:Set(Config.rageWeapon)
-
-Aim:Divider()
-
-local showFovToggle = Aim:Toggle({
-    Title = "Show FOV",
-    Callback = function(state)
-        Config.showFov = state
-        saveConfig()
-    end
-})
-showFovToggle:Set(Config.showFov)
-
-local fovSlider = Aim:Slider({
-    Title = "FOV Radius",
-    Value = {Min = 0, Max = 300, Default = 150, Step = 5},
-    Callback = function(value)
-        Config.fovRadius = value
-        Aimbot.fov = value
-        saveConfig()
-    end
-})
-fovSlider:Set(Config.fovRadius)
-
-local smoothnessSlider = Aim:Slider({
-    Title = "Aimbot Smoothness",
-    Value = {Min = 0, Max = 20, Default = 10, Step = 1},
-    Callback = function(value)
-        Config.aimbotSmoothness = value
-        Aimbot.smoothness = value
-        saveConfig()
-    end
-})
-smoothnessSlider:Set(Config.aimbotSmoothness)
-
-local wallCheckToggle = Aim:Toggle({
-    Title = "Wall Check",
-    Callback = function(state)
-        Config.wallCheck = state
-        Aimbot.wallCheck = state
-        Triggerbot.wallCheck = state
-        saveConfig()
-    end
-})
-wallCheckToggle:Set(Config.wallCheck)
-
--- ============ VISUALS TAB ============
-local espToggle = Visuals:Toggle({
-    Title = "ESP",
-    Callback = function(state)
-        Config.esp = state
-        saveConfig()
-    end
-})
-espToggle:Set(Config.esp)
-
-local espNamesToggle = Visuals:Toggle({
-    Title = "Show Names",
-    Callback = function(state)
-        Config.espNames = state
-        saveConfig()
-    end
-})
-espNamesToggle:Set(Config.espNames)
-
-local espHealthToggle = Visuals:Toggle({
-    Title = "Show Health",
-    Callback = function(state)
-        Config.espHealth = state
-        saveConfig()
-    end
-})
-espHealthToggle:Set(Config.espHealth)
-
-local espDistanceSlider = Visuals:Slider({
-    Title = "ESP Distance",
-    Value = {Min = 100, Max = 800, Default = 500, Step = 10},
-    Callback = function(value)
-        Config.espDistance = value
-        saveConfig()
-    end
-})
-espDistanceSlider:Set(Config.espDistance)
-
-local skinUnlockerButton = Visuals:Button({
-    Title = "Skin Unlocker",
-    Callback = function()
-        GetMeSkins()
-    end
-})
-
--- ============ MISC TAB ============
-local walkspeedToggle = Misc:Toggle({
-    Title = "Walkspeed",
-    Callback = function(state)
-        Config.walkspeedEnabled = state
-        saveConfig()
-    end
-})
-walkspeedToggle:Set(Config.walkspeedEnabled)
-
-local walkspeedSlider = Misc:Slider({
+local Slider = Misc:Slider({
     Title = "Walkspeed Value",
-    Value = {Min = 16, Max = 100, Default = 16, Step = 1},
+    Value = {
+        Min = 16,
+        Max = 100,
+        Default = 16
+    },
+    Step = 1,
     Callback = function(value)
-        Config.walkspeedValue = value
-        saveConfig()
+        MiscTab.Walkspeed = value
     end
 })
-walkspeedSlider:Set(Config.walkspeedValue)
 
-local noclipToggle = Misc:Toggle({
+local Toggle = Misc:Toggle({
+    Title = "Enable Walkspeed",
+    Callback = function(state)
+        MiscTab.WalkspeedEnabled = state
+    end
+})
+
+local Toggle = Misc:Toggle({
     Title = "Noclip",
     Callback = function(state)
-        Config.noclipEnabled = state
-        saveConfig()
+        MiscTab.Noclip = state
     end
 })
-noclipToggle:Set(Config.noclipEnabled)
 
-local fullbrightToggle = Misc:Toggle({
+local Toggle = Misc:Toggle({
     Title = "Fullbright",
     Callback = function(state)
-        Config.fullbrightEnabled = state
-        if state then enableFullbright() else disableFullbright() end
-        saveConfig()
+        MiscTab.Fullbtight = state
     end
 })
-fullbrightToggle:Set(Config.fullbrightEnabled)
 
-local tracersToggle = Misc:Toggle({
-    Title = "Tracers",
-    Callback = function(state)
-        Config.tracersEnabled = state
-        saveConfig()
-    end
-})
-tracersToggle:Set(Config.tracersEnabled)
-
-local tracerThicknessSlider = Misc:Slider({
-    Title = "Tracer Thickness",
-    Value = {Min = 1, Max = 5, Default = 2, Step = 1},
-    Callback = function(value)
-        Config.tracerThickness = value
-        saveConfig()
-    end
-})
-tracerThicknessSlider:Set(Config.tracerThickness)
-
--- ============ SETTINGS TAB ============
-local themer = Settings:Dropdown({
+--settings
+local Tab = Settings:Dropdown({
     Title = "Themes",
     Values = {
         "Dark",
@@ -1377,18 +1470,30 @@ local themer = Settings:Dropdown({
     end
 })
 
-local joindiscord = Settings:Button({
-    Title = "Join Discord!",
-    Desc = "copy link to our discord (btw its alr copied ever since u executed :P)",
+local Button = Settings:Button({
+    Title = "Copy Discord",
     Callback = function()
         setclipboard("https://dsc.gg/myxhub")
     end
 })
-local autoReinitToggle = Settings:Toggle({
-    Title = "Auto Reinit on Server Hop",
-    Callback = function(state)
-        Config.autoReinitEnabled = state
-        saveConfig()
+
+local Button = Settings:Button({
+    Title = "Panic Button (Unload UI)",
+    Icon = "Info",
+    Callback = function()
+        getgenv().StartSilentAim = false
+        Triggerbot:Stop()
+        Aimbot:Stop()
+        showfov = false
+        getgenv().Config.Enabled = false
+        ESP:Stop()
+        ESP.showNames = false
+        ESP.showHealth = false
+        MiscTab.Fullbtight = false
+        MiscTab.Noclip = false
+        MiscTab.Walkspeed = 16
+        MiscTab.WalkspeedEnabled = false
+        Window:Destroy()
     end
 })
-autoReinitToggle:Set(Config.autoReinitEnabled)
+  
