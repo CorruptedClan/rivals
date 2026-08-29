@@ -8,6 +8,7 @@ local Window = WindUI:CreateWindow({
     Icon = "rbxassetid://77852747600020",
     Author = "RIVALS",
     Theme = "Crimson",
+    ToggleKey = Enum.KeyCode.RightControl,
     Transparent = true
 })
 
@@ -733,10 +734,92 @@ end
 
 end
 
+--esp (glow cause cleaner)
+local GlowESP = {}
+GlowESP.running = false
+GlowESP.connection = nil
+GlowESP.glowObjects = {}
+GlowESP.teamColor = Color3.fromRGB(0, 255, 0)
+GlowESP.enemyColor = Color3.fromRGB(255, 0, 0)
+GlowESP.fillTransparency = 0.3
+GlowESP.outlineTransparency = 0
+
+local function getColorForPlayer(player)
+    if player.Team and player.Team == localPlayer.Team then
+        return GlowESP.teamColor
+    end
+    return GlowESP.enemyColor
+end
+
+local function createGlowESP(player)
+    if not player.Character then return end
+    local char = player.Character
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            local highlight = Instance.new("Highlight")
+            highlight.Name = "GlowESP"
+            highlight.Adornee = char
+            highlight.FillColor = getColorForPlayer(player)
+            highlight.OutlineColor = getColorForPlayer(player)
+            highlight.FillTransparency = GlowESP.fillTransparency
+            highlight.OutlineTransparency = GlowESP.outlineTransparency
+            highlight.Parent = part
+            GlowESP.glowObjects[char] = highlight
+            break
+        end
+    end
+end
+
+local function removeGlowESP(char)
+    if GlowESP.glowObjects[char] then
+        GlowESP.glowObjects[char]:Destroy()
+        GlowESP.glowObjects[char] = nil
+    end
+end
+
+function GlowESP:Start()
+    if self.running then return end
+    self.running = true
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= localPlayer and player.Character then
+            createGlowESP(player)
+        end
+    end
+    
+    Players.PlayerAdded:Connect(function(player)
+        if player ~= localPlayer then
+            player.CharacterAdded:Connect(function()
+                task.wait(0.1)
+                createGlowESP(player)
+            end)
+        end
+    end)
+    
+    self.connection = RunService.RenderStepped:Connect(function()
+        for player, _ in pairs(GlowESP.glowObjects) do
+            if not player or not player.Parent then
+                removeGlowESP(player)
+            end
+        end
+    end)
+end
+
+function GlowESP:Stop()
+    if not self.running then return end
+    self.running = false
+    if self.connection then
+        self.connection:Disconnect()
+    end
+    for char, _ in pairs(GlowESP.glowObjects) do
+        removeGlowESP(char)
+    end
+end
+
 --globals
 silentaimpart = "Head"
 fovradius = 130
-showfov = true
+showfov = false
 enableesp = false
 isteam = false
 randomHitbox = false
@@ -1298,6 +1381,7 @@ local Slider = Aim:Slider({
     Step = 10,
     Callback = function(value)
         Aimbot.smoothness = value
+        updateFOVCircle()
     end
 })
 
@@ -1328,6 +1412,7 @@ local Dropdown = Aim:Dropdown({
 local Toggle = Visuals:Toggle({
     Title = "Enable ESP",
     Callback = function(state)
+        if state then GlowESP:Start() else GlowESP:Stop() end
         if state then ESP:Start() else ESP:Stop() end
     end
 })
@@ -1365,17 +1450,9 @@ local MiscTab = {
     Fullbtight = false
 }
 
-RunService.RenderStepped:Connect(function()
-    if MiscTab.WalkspeedEnabled then
-        local character = localPlayer.Character
-        if character then
-            local humanoid = character:FindFirstChild("Humanoid")
-            if humanoid then
-                humanoid.WalkSpeed = MiscTab.Walkspeed
-            end
-        end
-    end
-end)
+local function GiveMeSpeed()
+player.Character.Humanoid.WalkSpeed = MiscTab.Walkspeed
+end
 
 RunService.RenderStepped:Connect(function()
     if MiscTab.Noclip then
@@ -1426,7 +1503,10 @@ local Slider = Misc:Slider({
 local Toggle = Misc:Toggle({
     Title = "Enable Walkspeed",
     Callback = function(state)
-        MiscTab.WalkspeedEnabled = state
+    _G.Speed = state
+        if _G.Speed then GiveMeSpeed()
+        wait(0.3)
+        end
     end
 })
 
@@ -1478,7 +1558,7 @@ local Button = Settings:Button({
 })
 
 local Button = Settings:Button({
-    Title = "Panic Button (Unload UI)",
+    Title = "Panic Button",
     Icon = "Info",
     Callback = function()
         getgenv().StartSilentAim = false
@@ -1493,7 +1573,6 @@ local Button = Settings:Button({
         MiscTab.Noclip = false
         MiscTab.Walkspeed = 16
         MiscTab.WalkspeedEnabled = false
-        Window:Destroy()
     end
 })
   
